@@ -1,0 +1,52 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+// Layouts
+import PatientLayout from './layouts/PatientLayout';
+import DoctorLayout from './layouts/DoctorLayout';
+import AdminLayout from './layouts/AdminLayout';
+
+// Pages - Landing
+import LandingPage from './pages/LandingPage';
+
+// Pages - Patient
+import PatientDashboard from './pages/patient/PatientDashboard';
+
+// Pages - Doctor
+import DoctorDashboard from './pages/doctor/DoctorDashboard';
+
+// Pages - Admin
+import AdminDashboard from './pages/admin/AdminDashboard';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Landing */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Patient routes */}
+        <Route path="/patient" element={<PatientLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<PatientDashboard />} />
+        </Route>
+
+        {/* Doctor routes */}
+        <Route path="/doctor" element={<DoctorLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<DoctorDashboard />} />
+        </Route>
+
+        {/* Admin routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
