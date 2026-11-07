@@ -13,6 +13,11 @@ import PatientDashboard from './pages/patient/PatientDashboard';
 
 // Pages - Doctor
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
+import DoctorAppointments from './pages/doctor/DoctorAppointments';
+import DoctorPatients from './pages/doctor/DoctorPatients';
+import DoctorConsultations from './pages/doctor/DoctorConsultations';
+import DoctorRecords from './pages/doctor/DoctorRecords';
+import DoctorProfile from './pages/doctor/DoctorProfile';
 
 // Pages - Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -34,6 +39,11 @@ function App() {
         <Route path="/doctor" element={<DoctorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DoctorDashboard />} />
+          <Route path="appointments" element={<DoctorAppointments />} />
+          <Route path="patients" element={<DoctorPatients />} />
+          <Route path="consultations" element={<DoctorConsultations />} />
+          <Route path="records" element={<DoctorRecords />} />
+          <Route path="profile" element={<DoctorProfile />} />
         </Route>
 
         {/* Admin routes */}
