@@ -13,9 +13,14 @@ import PatientDashboard from './pages/patient/PatientDashboard';
 
 // Pages - Doctor
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
+import DoctorCalendar from './pages/doctor/DoctorCalendar';
 import DoctorAppointments from './pages/doctor/DoctorAppointments';
 import DoctorPatients from './pages/doctor/DoctorPatients';
 import DoctorConsultations from './pages/doctor/DoctorConsultations';
+import DoctorSchedule from './pages/doctor/DoctorSchedule';
+import DoctorPrescriptions from './pages/doctor/DoctorPrescriptions';
+import DoctorCertificates from './pages/doctor/DoctorCertificates';
+import DoctorInvoices from './pages/doctor/DoctorInvoices';
 import DoctorRecords from './pages/doctor/DoctorRecords';
 import DoctorProfile from './pages/doctor/DoctorProfile';
 
@@ -39,8 +44,13 @@ function App() {
         <Route path="/doctor" element={<DoctorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DoctorDashboard />} />
+          <Route path="calendar" element={<DoctorCalendar />} />
           <Route path="appointments" element={<DoctorAppointments />} />
           <Route path="patients" element={<DoctorPatients />} />
+          <Route path="schedule" element={<DoctorSchedule />} />
+          <Route path="prescriptions" element={<DoctorPrescriptions />} />
+          <Route path="certificates" element={<DoctorCertificates />} />
+          <Route path="invoices" element={<DoctorInvoices />} />
           <Route path="consultations" element={<DoctorConsultations />} />
           <Route path="records" element={<DoctorRecords />} />
           <Route path="profile" element={<DoctorProfile />} />

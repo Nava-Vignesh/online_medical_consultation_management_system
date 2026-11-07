@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Calendar, CheckCircle, Clock, Video,
-  ArrowRight, Phone, Mail, Stethoscope, ChevronRight, X
+  Users, Calendar, CheckCircle, Clock,
+  ArrowRight, Phone, Mail, Stethoscope, ChevronRight, X,
+  TrendingUp, Star, AlertCircle, FileText
 } from 'lucide-react';
 import StatCard from '../../components/common/StatCard';
 import Badge from '../../components/common/Badge';
@@ -21,6 +22,10 @@ function DoctorDashboard() {
     (apt) => apt.date === '2026-11-07' && apt.status !== 'cancelled'
   );
 
+  const pendingAppointments = appointments.filter(
+    (apt) => apt.status === 'pending'
+  );
+
   const nextAppointment = todayAppointments.find(
     (apt) => apt.status === 'confirmed'
   ) || todayAppointments[0];
@@ -34,8 +39,8 @@ function DoctorDashboard() {
   return (
     <div>
       <PageHeader
-        title={`Good morning, ${dummyDoctor.name}`}
-        subtitle={`${dummyDoctor.specialization} · ${dummyDoctor.department} · License #${dummyDoctor.regNumber}`}
+        title={`Good evening, ${dummyDoctor.name}`}
+        subtitle={`${dummyDoctor.specialization} · ${dummyDoctor.department} · Reg. #${dummyDoctor.regNumber}`}
         actions={
           <div className="doctor-status-bar">
             <span className={`status-indicator-dot ${statusColors[doctorStatus] || 'status-dot-available'}`} />
@@ -43,17 +48,17 @@ function DoctorDashboard() {
               className="status-select"
               value={doctorStatus}
               onChange={(e) => setDoctorStatus(e.target.value)}
-              aria-label="Doctor Availability Status"
+              aria-label="Doctor Clinic Status"
             >
-              <option value="available">Available for Consultations</option>
-              <option value="busy">Busy / In Consultation</option>
-              <option value="off-duty">Off-Duty / Away</option>
+              <option value="available">Available in Clinic</option>
+              <option value="busy">In Consultation</option>
+              <option value="off-duty">Away / Off-Duty</option>
             </select>
           </div>
         }
       />
 
-      {/* Urgent / Next Consultation Banner */}
+      {/* Next In-Person Appointment Banner */}
       {nextAppointment && (
         <div
           style={{
@@ -82,11 +87,11 @@ function DoctorDashboard() {
                 justifyContent: 'center',
               }}
             >
-              <Video size={24} color="#fff" />
+              <Stethoscope size={24} color="#fff" />
             </div>
             <div>
               <div style={{ fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.8px', opacity: 0.85 }}>
-                Next Online Consultation &bull; {nextAppointment.time} Today
+                Next In-Person Consultation &bull; {nextAppointment.time} Today &bull; {nextAppointment.room || 'Room 3B'}
               </div>
               <div style={{ fontSize: '17px', fontWeight: '700', marginTop: '2px' }}>
                 {nextAppointment.patientName} ({nextAppointment.patientAge}y, {nextAppointment.patientGender})
@@ -103,46 +108,87 @@ function DoctorDashboard() {
               style={{ background: '#fff', color: 'var(--primary)', borderColor: '#fff' }}
               onClick={() => navigate(`/doctor/consultations?aptId=${nextAppointment.id}`)}
             >
-              <Video size={15} style={{ marginRight: 6 }} />
-              Enter Consultation Room
+              <Stethoscope size={15} style={{ marginRight: 6 }} />
+              Start Consultation
             </button>
             <button
               className="btn btn-ghost"
               style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)', border: '1px solid' }}
               onClick={() => navigate('/doctor/appointments')}
             >
-              All Appointments
+              View Schedule
             </button>
           </div>
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats row styled with custom forest green emphasis card */}
       <div className="stats-grid">
-        <StatCard
-          label="Today's Appointments"
-          value={todayAppointments.length.toString()}
-          meta="2 video calls · 2 in-clinic"
-          icon={<Calendar size={18} />}
-        />
-        <StatCard
-          label="Total Patients"
-          value={dummyDoctor.patients || patients.length}
-          meta="Assigned caseload"
-          icon={<Users size={18} />}
-        />
-        <StatCard
-          label="Completed Consultations"
-          value="31"
-          meta="+18% from last week"
-          icon={<CheckCircle size={18} />}
-        />
-        <StatCard
-          label="Pending Test Reviews"
-          value="4"
-          meta="Blood & Radiology reports"
-          icon={<Clock size={18} />}
-        />
+        {/* Forest-green hero stat card */}
+        <div
+          style={{
+            background: 'var(--primary)',
+            color: '#fff',
+            borderRadius: 'var(--radius-md)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{ fontSize: '32px', fontWeight: 800 }}>{todayAppointments.length}</div>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>
+              TODAY'S APPOINTMENTS
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+              All in-person clinic visits
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Consultations */}
+        <div className="stat-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="stat-card-value">{pendingAppointments.length}</div>
+            <span className="badge badge-warning">
+              <Clock size={12} style={{ marginRight: 3 }} /> Pending
+            </span>
+          </div>
+          <div className="stat-card-label" style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: 11 }}>
+            Pending Consultations
+          </div>
+          <div className="stat-card-meta">Awaiting clinic approval</div>
+        </div>
+
+        {/* Total Consultations */}
+        <div className="stat-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="stat-card-value">124</div>
+            <span className="badge badge-success">
+              <TrendingUp size={12} style={{ marginRight: 3 }} /> Lifetime
+            </span>
+          </div>
+          <div className="stat-card-label" style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: 11 }}>
+            Total Consultations
+          </div>
+          <div className="stat-card-meta">+18% this month</div>
+        </div>
+
+        {/* Rating */}
+        <div className="stat-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="stat-card-value">{dummyDoctor.rating || '4.9'} <span style={{ fontSize: 14, color: 'var(--secondary)' }}>/ 5</span></div>
+            <span className="badge badge-warning">
+              <Star size={12} style={{ marginRight: 3, fill: '#d97706' }} /> 48 reviews
+            </span>
+          </div>
+          <div className="stat-card-label" style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: 11 }}>
+            Average Patient Rating
+          </div>
+          <div className="stat-card-meta">Excellent care index</div>
+        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -150,8 +196,8 @@ function DoctorDashboard() {
         <div className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Today's Consultation Schedule</div>
-              <div className="card-subtitle">Scheduled appointments for 7 November 2026</div>
+              <div className="card-title">Today's In-Person Consultation Schedule</div>
+              <div className="card-subtitle">Scheduled clinic appointments for today</div>
             </div>
             <Button variant="secondary" size="sm" onClick={() => navigate('/doctor/appointments')}>
               View All Appointments
@@ -164,7 +210,7 @@ function DoctorDashboard() {
                 <tr>
                   <th>Patient</th>
                   <th>Time</th>
-                  <th>Type</th>
+                  <th>Type &amp; Room</th>
                   <th>Symptoms</th>
                   <th>Status</th>
                   <th>Action</th>
@@ -182,8 +228,8 @@ function DoctorDashboard() {
                     <td style={{ fontWeight: 500 }}>{apt.time}</td>
                     <td>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        {apt.type.includes('Video') ? <Video size={13} color="var(--primary)" /> : <Stethoscope size={13} />}
-                        {apt.type}
+                        <Stethoscope size={13} color="var(--primary)" />
+                        {apt.room || 'Room 3B'}
                       </span>
                     </td>
                     <td style={{ maxWidth: '180px', fontSize: 12.5 }} className="truncate">
@@ -198,10 +244,10 @@ function DoctorDashboard() {
                     <td>
                       <Button
                         size="sm"
-                        variant={apt.type.includes('Video') && apt.status === 'confirmed' ? 'primary' : 'secondary'}
+                        variant={apt.status === 'confirmed' ? 'primary' : 'secondary'}
                         onClick={() => navigate(`/doctor/consultations?aptId=${apt.id}`)}
                       >
-                        {apt.type.includes('Video') ? 'Consult' : 'View'}
+                        {apt.status === 'confirmed' ? 'Consult' : 'Details'}
                       </Button>
                     </td>
                   </tr>
@@ -211,12 +257,12 @@ function DoctorDashboard() {
           </div>
         </div>
 
-        {/* Recent Patients */}
+        {/* Assigned Patients */}
         <div className="card">
           <div className="card-header">
             <div>
               <div className="card-title">Assigned Patients</div>
-              <div className="card-subtitle">Recent patient records</div>
+              <div className="card-subtitle">Recent patient records &amp; history</div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => navigate('/doctor/patients')}>
               View All <ArrowRight size={13} style={{ marginLeft: 4 }} />
@@ -254,10 +300,12 @@ function DoctorDashboard() {
 
           {/* Quick Shortcuts */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/doctor/records')}>
-              Write Prescription
+            <Button variant="secondary" size="sm" onClick={() => navigate('/doctor/prescriptions')}>
+              <FileText size={13} style={{ marginRight: 4 }} />
+              Write Rx
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/doctor/profile')}>
+            <Button variant="secondary" size="sm" onClick={() => navigate('/doctor/schedule')}>
+              <Calendar size={13} style={{ marginRight: 4 }} />
               Manage Slots
             </Button>
           </div>
@@ -270,7 +318,7 @@ function DoctorDashboard() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>Patient Profile: {selectedPatient.name}</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>Patient Clinical Record: {selectedPatient.name}</h3>
                 <p style={{ fontSize: 12, color: 'var(--secondary)' }}>ID: {selectedPatient.id}</p>
               </div>
               <button
@@ -332,11 +380,13 @@ function DoctorDashboard() {
               <Button
                 variant="primary"
                 onClick={() => {
+                  const pId = selectedPatient.id;
                   setSelectedPatient(null);
-                  navigate('/doctor/consultations');
+                  navigate(`/doctor/consultations?patientId=${pId}`);
                 }}
               >
-                Start Consultation
+                <Stethoscope size={14} style={{ marginRight: 6 }} />
+                Start In-Person Consultation
               </Button>
             </div>
           </div>

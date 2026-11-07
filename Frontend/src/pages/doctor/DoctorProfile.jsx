@@ -21,7 +21,7 @@ function DoctorProfile() {
     email: dummyDoctor.email,
     phone: dummyDoctor.phone,
     experience: dummyDoctor.experience,
-    bio: dummyDoctor.bio || 'Consultant Physician with expertise in outpatient management and telemedicine care.',
+    bio: dummyDoctor.bio || 'Consultant Physician with expertise in outpatient management and in-person clinical care.',
     consultationFee: dummyDoctor.consultationFee || '₹500',
     availableHours: dummyDoctor.availableHours || '09:00 AM - 05:00 PM',
     slotDuration: dummyDoctor.slotDuration || '30 mins',
@@ -252,7 +252,7 @@ function DoctorProfile() {
 
               <div style={{ background: 'var(--bg)', padding: 14, borderRadius: 'var(--radius-sm)' }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                  Telehealth Settings Summary
+                  In-Person Practice Settings Summary
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--secondary)', lineHeight: 1.5 }}>
                   Active {availableDays.length} days/week &bull; {profile.availableHours} &bull; {profile.slotDuration} slots &bull; Fee {profile.consultationFee}

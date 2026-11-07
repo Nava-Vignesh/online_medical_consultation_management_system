@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff,
-  Share2, MessageSquare, FileText, Activity, Plus, Trash2,
-  CheckCircle, AlertCircle, Send, User, Clock, ShieldCheck
+  FileText, Activity, Plus, Trash2,
+  CheckCircle, AlertCircle, User, Clock, Stethoscope,
+  ClipboardList, Calendar, Printer
 } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
-import { appointments, patients, dummyDoctor } from '../../data/dummyData';
+import PrescriptionPad from '../../components/doctor/PrescriptionPad';
+import { appointments, patients, dummyDoctor, consultationRecords } from '../../data/dummyData';
 import '../../styles/doctor.css';
 
 function DoctorConsultations() {
@@ -18,7 +19,6 @@ function DoctorConsultations() {
   const aptIdFromUrl = searchParams.get('aptId');
   const patientIdFromUrl = searchParams.get('patientId');
 
-  // Match appointment or default to first confirmed one
   const matchedApt = appointments.find(
     (a) => a.id === aptIdFromUrl || a.patientId === patientIdFromUrl
   ) || appointments[0];
@@ -27,66 +27,25 @@ function DoctorConsultations() {
     (p) => p.id === matchedApt?.patientId || p.name === matchedApt?.patientName
   ) || patients[0];
 
-  // Active state
   const [currentApt, setCurrentApt] = useState(matchedApt);
   const [currentPatient, setCurrentPatient] = useState(matchedPatient);
+  const [activeTab, setActiveTab] = useState('prescription'); // 'prescription', 'notes', 'history'
 
-  // Video call controls state
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isCallActive, setIsCallActive] = useState(true);
-  const [callSeconds, setCallSeconds] = useState(542); // 9:02 start
-  const [activeTab, setActiveTab] = useState('prescription'); // 'prescription', 'chat', 'vitals'
-
-  // Prescription Form state
+  // Consultation state
   const [diagnosis, setDiagnosis] = useState('Acute Upper Respiratory Tract Infection with Fever');
-  const [clinicalNotes, setClinicalNotes] = useState('Patient throat congested, chest clear, temperature 99.1F.');
-  const [dietAdvice, setDietAdvice] = useState('Drink warm water, saline gargling twice daily, rest.');
+  const [clinicalNotes, setClinicalNotes] = useState('Patient presented with 2-day sore throat and low-grade pyrexia. Chest clear on auscultation. Pharyngeal erythema present without tonsillar exudates.');
+  const [dietAdvice, setDietAdvice] = useState('Drink warm saline water, maintain hydration, rest for 3 days, avoid chilled items.');
+  const [followUpDate, setFollowUpDate] = useState('2026-11-14');
+  const [consultationStatus, setConsultationStatus] = useState('in-progress');
+
   const [medications, setMedications] = useState([
-    { name: 'Paracetamol 650mg', dosage: '1 tablet', frequency: 'Thrice daily', duration: '3 days', instruction: 'After food' },
-    { name: 'Levocetirizine 5mg', dosage: '1 tablet', frequency: 'Once daily at night', duration: '5 days', instruction: 'Bedtime' },
+    { name: 'Paracetamol 650mg', dosage: '1 tablet', frequency: 'Thrice daily', duration: '3 days', instruction: 'After meals' },
+    { name: 'Levocetirizine 5mg', dosage: '1 tablet', frequency: 'Once daily at night', duration: '5 days', instruction: 'At bedtime' },
+    { name: 'Vitamin C 500mg', dosage: '1 tablet', frequency: 'Once daily', duration: '10 days', instruction: 'Morning chewable' },
   ]);
+
   const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
-
-  // Chat state
-  const [chatMessages, setChatMessages] = useState([
-    { sender: 'doctor', text: `Hello ${matchedPatient.name}, Dr. Priya Nair here. How are you feeling today?`, time: '10:01 AM' },
-    { sender: 'patient', text: `Good morning Doctor, I have had a continuous headache and fever since yesterday evening.`, time: '10:02 AM' },
-    { sender: 'doctor', text: `Understood. Have you checked your temperature this morning?`, time: '10:03 AM' },
-    { sender: 'patient', text: `Yes doctor, it was 99.1 °F around 8:00 AM.`, time: '10:04 AM' },
-  ]);
-  const [inputMsg, setInputMsg] = useState('');
-
-  // Call timer effect
-  useEffect(() => {
-    let timer;
-    if (isCallActive) {
-      timer = setInterval(() => {
-        setCallSeconds((s) => s + 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isCallActive]);
-
-  const formatTimer = (totalSeconds) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!inputMsg.trim()) return;
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        sender: 'doctor',
-        text: inputMsg,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-    setInputMsg('');
-  };
+  const [completedRx, setCompletedRx] = useState(null);
 
   const handleAddMedication = () => {
     setMedications((prev) => [
@@ -106,34 +65,53 @@ function DoctorConsultations() {
   };
 
   const handleFinishConsultation = () => {
-    setIsCallActive(false);
+    const rx = {
+      id: `RX-${Math.floor(2000 + Math.random() * 8000)}`,
+      patientId: currentPatient.id,
+      patientName: currentPatient.name,
+      patientAge: currentPatient.age,
+      patientGender: currentPatient.gender,
+      date: new Date().toISOString().split('T')[0],
+      diagnosis,
+      doctorName: dummyDoctor.name,
+      department: dummyDoctor.department,
+      medicines: medications,
+      dietAdvice,
+    };
+    setCompletedRx(rx);
+    setConsultationStatus('completed');
     setIsCompletedModalOpen(true);
   };
+
+  // Past consultations for current patient
+  const patientPastRecords = consultationRecords.filter(
+    (r) => r.patientId === currentPatient.id || r.patientName === currentPatient.name
+  );
 
   return (
     <div>
       <PageHeader
-        title="Telemedicine Consultation Room"
-        subtitle={`Live encrypted consultation session with patient: ${currentPatient.name}`}
+        title="In-Person Consultation Workspace"
+        subtitle={`Clinical examination and diagnostic notes for: ${currentPatient.name}`}
         actions={
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', color: 'var(--secondary)' }}>Patient Switcher:</span>
             <select
               className="input-field"
-              style={{ width: 'auto', padding: '5px 10px', fontSize: '12px' }}
+              style={{ width: 'auto', padding: '5px 10px', fontSize: '12.5px' }}
               value={currentApt?.id}
               onChange={(e) => {
                 const apt = appointments.find((a) => a.id === e.target.value);
                 if (apt) {
                   setCurrentApt(apt);
-                  const p = patients.find((p) => p.id === apt.patientId || p.name === apt.patientName);
+                  const p = patients.find((pat) => pat.id === apt.patientId || pat.name === apt.patientName);
                   if (p) setCurrentPatient(p);
                 }
               }}
             >
               {appointments.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.patientName} &mdash; {a.time} ({a.type})
+                  {a.patientName} &mdash; {a.time} ({a.room || 'Room 3B'})
                 </option>
               ))}
             </select>
@@ -141,105 +119,137 @@ function DoctorConsultations() {
         }
       />
 
-      {/* Consultation Main Workspace */}
-      <div className="consultation-room-container">
-        {/* Left Video Area */}
-        <div className="video-section">
-          <div className="video-screen">
-            {/* Live Indicator */}
-            {isCallActive ? (
-              <div className="live-badge">
-                <span className="live-pulse" /> LIVE TELE-CONSULTATION
+      {/* Main Workspace Two-Column Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '20px', alignItems: 'start' }}>
+        {/* Left Column: Patient Record, Vitals & Clinical Findings */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Patient Card */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>{currentPatient.name}</h3>
+                <p style={{ fontSize: 12, color: 'var(--secondary)' }}>
+                  Patient ID: {currentPatient.id} &bull; Room: {currentApt?.room || 'Room 3B'}
+                </p>
               </div>
-            ) : (
-              <div className="live-badge" style={{ background: '#7f8c8d' }}>
-                SESSION ENDED
-              </div>
-            )}
-
-            {/* Timer */}
-            <div className="call-timer">
-              <Clock size={13} /> {formatTimer(callSeconds)}
+              <Badge
+                status={consultationStatus === 'completed' ? 'completed' : 'confirmed'}
+                label={consultationStatus === 'completed' ? 'Completed' : 'In Consultation'}
+              />
             </div>
 
-            {/* Patient Video Stream View */}
-            <div className="patient-video-stream">
-              <div className="patient-video-avatar">
-                {currentPatient.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+            <div className="patient-badge-row" style={{ marginBottom: 12 }}>
+              <span className="badge badge-secondary">{currentPatient.gender}, {currentPatient.age} yrs</span>
+              <span className="badge badge-success">Blood: {currentPatient.bloodGroup}</span>
+              <span className="badge badge-warning">{currentPatient.totalVisits || 1} Total Visits</span>
+            </div>
+
+            {/* Vitals */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', marginBottom: 6 }}>
+                CLINIC CHECK-IN VITALS
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: '600' }}>{currentPatient.name}</h3>
-              <p style={{ fontSize: '12.5px', opacity: '0.8', marginTop: '4px' }}>
-                {currentPatient.age} yrs &bull; {currentPatient.gender} &bull; Blood: {currentPatient.bloodGroup}
-              </p>
-              <div style={{ marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '14px', fontSize: '11.5px' }}>
-                <ShieldCheck size={14} color="#27ae60" /> End-to-End HIPAA Encrypted Audio/Video
+              <div className="vitals-summary-chips">
+                <div className="vital-chip">
+                  <span className="vital-chip-label">BP</span>
+                  <span className="vital-chip-value">{currentApt?.vitals?.bp || '120/80'}</span>
+                </div>
+                <div className="vital-chip">
+                  <span className="vital-chip-label">Pulse</span>
+                  <span className="vital-chip-value">{currentApt?.vitals?.pulse || '76 bpm'}</span>
+                </div>
+                <div className="vital-chip">
+                  <span className="vital-chip-label">Temp</span>
+                  <span className="vital-chip-value">{currentApt?.vitals?.temp || '98.6 °F'}</span>
+                </div>
+                <div className="vital-chip">
+                  <span className="vital-chip-label">Weight</span>
+                  <span className="vital-chip-value">{currentApt?.vitals?.weight || '72 kg'}</span>
+                </div>
               </div>
             </div>
 
-            {/* Doctor PIP Mini Feed */}
-            <div className="pip-doctor-video">
-              {isVideoOff ? (
-                <div style={{ color: '#aaa', fontSize: '10px' }}>Camera Off</div>
-              ) : (
-                <>
-                  <div className="pip-avatar">
-                    <User size={18} />
-                  </div>
-                  <div>You (Dr. Priya)</div>
-                </>
-              )}
+            {/* Allergies Notice */}
+            <div
+              style={{
+                background: currentPatient.allergies && currentPatient.allergies !== 'None' ? '#fdf2f2' : 'var(--bg)',
+                border: `1px solid ${currentPatient.allergies && currentPatient.allergies !== 'None' ? '#fca5a5' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 12px',
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertCircle size={13} /> KNOWN DRUG ALLERGIES
+              </div>
+              <div style={{ fontSize: 13, color: '#991b1b', fontWeight: 500, marginTop: 2 }}>
+                {currentPatient.allergies || 'No documented allergies.'}
+              </div>
+            </div>
+
+            {/* Chronic Conditions */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', marginBottom: 4 }}>
+                CHRONIC CONDITIONS
+              </div>
+              <div style={{ fontSize: 13, background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
+                {currentPatient.chronicConditions || 'None reported.'}
+              </div>
+            </div>
+
+            {/* Chief Complaint */}
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', marginBottom: 4 }}>
+                PRESENTING SYMPTOMS / CHIEF COMPLAINT
+              </div>
+              <div style={{ fontSize: 13, background: '#fdfdfd', borderLeft: '3px solid var(--primary)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
+                {currentApt?.symptoms || 'General clinical review'}
+              </div>
             </div>
           </div>
 
-          {/* Call Controls Bar */}
-          <div className="video-controls-bar">
-            <button
-              className={`control-btn${isMuted ? ' muted' : ''}`}
-              onClick={() => setIsMuted((v) => !v)}
-              title={isMuted ? 'Unmute Microphone' : 'Mute Microphone'}
-            >
-              {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
+          {/* Clinical Examination Input */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div className="card-header" style={{ marginBottom: 10 }}>
+              <div className="card-title">Doctor's Physical Examination &amp; Notes</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label className="input-label">Clinical Diagnosis *</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  placeholder="e.g. Acute Pharyngitis"
+                />
+              </div>
 
-            <button
-              className={`control-btn${isVideoOff ? ' off' : ''}`}
-              onClick={() => setIsVideoOff((v) => !v)}
-              title={isVideoOff ? 'Turn Camera On' : 'Turn Camera Off'}
-            >
-              {isVideoOff ? <VideoOff size={18} /> : <VideoIcon size={18} />}
-            </button>
+              <div>
+                <label className="input-label">Physical Examination Observations</label>
+                <textarea
+                  className="input-field"
+                  rows={4}
+                  value={clinicalNotes}
+                  onChange={(e) => setClinicalNotes(e.target.value)}
+                  placeholder="Auscultation, palpation, lymphadenopathy, general condition..."
+                />
+              </div>
 
-            <button
-              className="control-btn"
-              onClick={() => alert('Screen share simulated: presentation active.')}
-              title="Share Screen"
-            >
-              <Share2 size={18} />
-            </button>
-
-            {isCallActive ? (
-              <button
-                className="control-btn end-call"
-                onClick={handleFinishConsultation}
-                title="End Consultation"
-              >
-                <PhoneOff size={20} />
-              </button>
-            ) : (
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  setIsCallActive(true);
-                  setCallSeconds(0);
-                }}
-              >
-                Reconnect Call
-              </button>
-            )}
+              <div>
+                <label className="input-label">Follow-up Consultation Date</label>
+                <input
+                  type="date"
+                  className="input-field"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Right Side Consultation Panel */}
+        {/* Right Column: Prescription Builder, Notes & History Tabs */}
         <div className="consultation-panel">
           <div className="panel-tabs-header">
             <button
@@ -247,142 +257,117 @@ function DoctorConsultations() {
               onClick={() => setActiveTab('prescription')}
             >
               <FileText size={14} style={{ display: 'inline', marginRight: 4 }} />
-              Prescription & Notes
+              Prescription (Rx)
             </button>
             <button
-              className={`panel-tab-btn${activeTab === 'chat' ? ' active' : ''}`}
-              onClick={() => setActiveTab('chat')}
+              className={`panel-tab-btn${activeTab === 'notes' ? ' active' : ''}`}
+              onClick={() => setActiveTab('notes')}
             >
-              <MessageSquare size={14} style={{ display: 'inline', marginRight: 4 }} />
-              In-Call Chat
+              <ClipboardList size={14} style={{ display: 'inline', marginRight: 4 }} />
+              Diet &amp; Lifestyle
             </button>
             <button
-              className={`panel-tab-btn${activeTab === 'vitals' ? ' active' : ''}`}
-              onClick={() => setActiveTab('vitals')}
+              className={`panel-tab-btn${activeTab === 'history' ? ' active' : ''}`}
+              onClick={() => setActiveTab('history')}
             >
               <Activity size={14} style={{ display: 'inline', marginRight: 4 }} />
-              Vitals & History
+              Medical History ({patientPastRecords.length})
             </button>
           </div>
 
-          {/* TAB 1: E-Prescription & Clinical Notes */}
+          {/* TAB 1: Prescription Builder */}
           {activeTab === 'prescription' && (
             <div className="panel-tab-content">
-              <div>
-                <label className="input-label">Chief Diagnosis *</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={diagnosis}
-                  onChange={(e) => setDiagnosis(e.target.value)}
-                  placeholder="e.g. Acute Bronchitis"
-                />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Prescribed Medications ({medications.length})</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleAddMedication}
+                  style={{ fontSize: 11.5 }}
+                >
+                  <Plus size={12} style={{ marginRight: 3 }} /> Add Medication
+                </button>
               </div>
 
-              <div>
-                <label className="input-label">Clinical Observations & Examination</label>
-                <textarea
-                  className="input-field"
-                  rows={2}
-                  value={clinicalNotes}
-                  onChange={(e) => setClinicalNotes(e.target.value)}
-                  placeholder="Doctor's clinical findings..."
-                />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label className="input-label">Prescribed Medications (Rx)</label>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleAddMedication}
-                    style={{ fontSize: '11px', padding: '3px 8px' }}
-                  >
-                    <Plus size={12} style={{ marginRight: 2 }} /> Add Medicine
-                  </button>
-                </div>
-
-                <table className="rx-table">
-                  <thead>
-                    <tr>
-                      <th>Medicine Name</th>
-                      <th>Dosage</th>
-                      <th>Frequency</th>
-                      <th>Days</th>
-                      <th></th>
+              <table className="rx-table">
+                <thead>
+                  <tr>
+                    <th>Medicine</th>
+                    <th>Dosage</th>
+                    <th>Frequency</th>
+                    <th>Days</th>
+                    <th>Instructions</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {medications.map((med, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <input
+                          type="text"
+                          className="rx-input"
+                          placeholder="Medicine name"
+                          value={med.name}
+                          onChange={(e) => handleMedChange(idx, 'name', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="rx-input"
+                          style={{ width: '65px' }}
+                          value={med.dosage}
+                          onChange={(e) => handleMedChange(idx, 'dosage', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="rx-input"
+                          value={med.frequency}
+                          onChange={(e) => handleMedChange(idx, 'frequency', e.target.value)}
+                        >
+                          <option value="Once daily">Once daily</option>
+                          <option value="Twice daily">Twice daily</option>
+                          <option value="Thrice daily">Thrice daily</option>
+                          <option value="SOS (Needed)">SOS (Needed)</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="rx-input"
+                          style={{ width: '55px' }}
+                          value={med.duration}
+                          onChange={(e) => handleMedChange(idx, 'duration', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="rx-input"
+                          placeholder="Instructions"
+                          value={med.instruction}
+                          onChange={(e) => handleMedChange(idx, 'instruction', e.target.value)}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          style={{ color: 'var(--danger)', padding: 2 }}
+                          onClick={() => handleRemoveMedication(idx)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {medications.map((med, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <input
-                            type="text"
-                            className="rx-input"
-                            placeholder="Medicine name"
-                            value={med.name}
-                            onChange={(e) => handleMedChange(idx, 'name', e.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="rx-input"
-                            style={{ width: '70px' }}
-                            value={med.dosage}
-                            onChange={(e) => handleMedChange(idx, 'dosage', e.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className="rx-input"
-                            value={med.frequency}
-                            onChange={(e) => handleMedChange(idx, 'frequency', e.target.value)}
-                          >
-                            <option value="Once daily">Once daily</option>
-                            <option value="Twice daily">Twice daily</option>
-                            <option value="Thrice daily">Thrice daily</option>
-                            <option value="SOS (As needed)">SOS (Needed)</option>
-                          </select>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="rx-input"
-                            style={{ width: '60px' }}
-                            value={med.duration}
-                            onChange={(e) => handleMedChange(idx, 'duration', e.target.value)}
-                          />
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            style={{ color: 'var(--danger)', padding: 2 }}
-                            onClick={() => handleRemoveMedication(idx)}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
 
-              <div>
-                <label className="input-label">Diet & Lifestyle Advice</label>
-                <textarea
-                  className="input-field"
-                  rows={2}
-                  value={dietAdvice}
-                  onChange={(e) => setDietAdvice(e.target.value)}
-                  placeholder="Dietary instructions, hydration, rest..."
-                />
-              </div>
-
-              <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+              <div style={{ marginTop: 'auto', paddingTop: 16 }}>
                 <Button
                   variant="primary"
                   className="btn-lg"
@@ -390,216 +375,125 @@ function DoctorConsultations() {
                   onClick={handleFinishConsultation}
                 >
                   <CheckCircle size={16} style={{ marginRight: 6 }} />
-                  Complete Consultation & Issue Rx
+                  Complete In-Person Consultation &amp; Issue Rx
                 </Button>
               </div>
             </div>
           )}
 
-          {/* TAB 2: Live In-Call Chat */}
-          {activeTab === 'chat' && (
+          {/* TAB 2: Diet & Advice */}
+          {activeTab === 'notes' && (
             <div className="panel-tab-content">
-              <div className="chat-messages-container">
-                {chatMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`chat-bubble ${msg.sender === 'doctor' ? 'from-doctor' : 'from-patient'}`}
-                  >
-                    <div>{msg.text}</div>
-                    <div className="chat-time">{msg.time}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Quick Prompt Chips */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
-                  onClick={() => setInputMsg('Please ensure you are in a well-lit room.')}
-                >
-                  Lighting check
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
-                  onClick={() => setInputMsg('I am generating your e-prescription now.')}
-                >
-                  Generating Rx
-                </button>
-              </div>
-
-              <form onSubmit={handleSendMessage} className="chat-input-bar">
-                <input
-                  type="text"
+              <div>
+                <label className="input-label">Dietary &amp; Hydration Guidance</label>
+                <textarea
                   className="input-field"
-                  placeholder="Type message to patient..."
-                  value={inputMsg}
-                  onChange={(e) => setInputMsg(e.target.value)}
+                  rows={4}
+                  value={dietAdvice}
+                  onChange={(e) => setDietAdvice(e.target.value)}
+                  placeholder="Specify dietary instructions, fluid intake, and restrictions..."
                 />
-                <Button type="submit" variant="primary" size="sm">
-                  <Send size={14} />
+              </div>
+
+              <div>
+                <label className="input-label">Clinical Discharge Remarks</label>
+                <textarea
+                  className="input-field"
+                  rows={3}
+                  placeholder="Patient counseled on alarm symptoms. In case of worsening fever or chest discomfort, report immediately to ER."
+                />
+              </div>
+
+              <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+                <Button
+                  variant="primary"
+                  className="btn-lg"
+                  style={{ width: '100%' }}
+                  onClick={handleFinishConsultation}
+                >
+                  <CheckCircle size={16} style={{ marginRight: 6 }} />
+                  Complete Consultation &amp; Issue Rx
                 </Button>
-              </form>
+              </div>
             </div>
           )}
 
-          {/* TAB 3: Vitals & Medical History */}
-          {activeTab === 'vitals' && (
+          {/* TAB 3: Medical History */}
+          {activeTab === 'history' && (
             <div className="panel-tab-content">
-              <div className="patient-badge-row">
-                <span className="badge badge-secondary">Age: {currentPatient.age}</span>
-                <span className="badge badge-secondary">Gender: {currentPatient.gender}</span>
-                <span className="badge badge-success">Blood: {currentPatient.bloodGroup}</span>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                Previous Consultations for {currentPatient.name}
               </div>
 
-              <div>
-                <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--secondary)', marginBottom: '4px' }}>
-                  RECORDED VITALS
+              {patientPastRecords.length === 0 ? (
+                <div style={{ color: 'var(--secondary)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
+                  No prior consultation records on file for this patient.
                 </div>
-                <div className="vitals-summary-chips">
-                  <div className="vital-chip">
-                    <span className="vital-chip-label">BP</span>
-                    <span className="vital-chip-value">{currentApt?.vitals?.bp || '120/80'}</span>
+              ) : (
+                patientPastRecords.map((rec) => (
+                  <div
+                    key={rec.id}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: 12,
+                      background: '#fafbfa',
+                      fontSize: 13,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: 4 }}>
+                      <span style={{ color: 'var(--primary)' }}>{rec.diagnosis}</span>
+                      <span style={{ color: 'var(--secondary)', fontSize: 12 }}>{rec.date}</span>
+                    </div>
+                    <div style={{ color: 'var(--text)', fontSize: 12.5, marginBottom: 6 }}>
+                      {rec.clinicalNotes}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--secondary)' }}>
+                      Follow-up: {rec.followUp} &bull; Attending: {rec.doctorName}
+                    </div>
                   </div>
-                  <div className="vital-chip">
-                    <span className="vital-chip-label">Heart Rate</span>
-                    <span className="vital-chip-value">{currentApt?.vitals?.pulse || '76 bpm'}</span>
-                  </div>
-                  <div className="vital-chip">
-                    <span className="vital-chip-label">Temp</span>
-                    <span className="vital-chip-value">{currentApt?.vitals?.temp || '98.6 °F'}</span>
-                  </div>
-                  <div className="vital-chip">
-                    <span className="vital-chip-label">Weight</span>
-                    <span className="vital-chip-value">{currentApt?.vitals?.weight || '72 kg'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ background: '#fdf2f2', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--danger)' }}>
-                  DOCUMENTED ALLERGIES
-                </div>
-                <div style={{ fontSize: '13px', color: '#991b1b', marginTop: '2px' }}>
-                  {currentPatient.allergies || 'No known allergies reported.'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--secondary)', marginBottom: '4px' }}>
-                  CHRONIC HEALTH CONDITIONS
-                </div>
-                <div style={{ fontSize: '13px', background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
-                  {currentPatient.chronicConditions || 'None reported.'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--secondary)', marginBottom: '4px' }}>
-                  REPORTED SYMPTOMS
-                </div>
-                <div style={{ fontSize: '13px', background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
-                  {currentApt?.symptoms || 'General wellness check'}
-                </div>
-              </div>
+                ))
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Consultation Summary & Prescription Issue Modal */}
-      {isCompletedModalOpen && (
+      {/* Completion Modal */}
+      {isCompletedModalOpen && completedRx && (
         <div className="modal-overlay">
           <div className="modal-content modal-lg">
             <div className="modal-header">
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>
-                  Consultation Concluded &mdash; E-Prescription Issued
+                  In-Person Consultation Completed &mdash; Prescription Issued
                 </h3>
                 <p style={{ fontSize: 12, color: 'var(--secondary)' }}>
-                  Reference #{currentApt?.id || 'APT001'} &bull; Digital Signature Verified
+                  Reference #{currentApt?.id} &bull; Verified by {dummyDoctor.name}
                 </p>
               </div>
             </div>
 
             <div className="modal-body">
-              <div className="prescription-paper">
-                <div className="rx-pad-header">
-                  <div>
-                    <div className="rx-clinic-name">MEDCONSULT CLINICAL SERVICES</div>
-                    <div className="rx-clinic-sub">Department of General Medicine & Telehealth</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{dummyDoctor.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--secondary)' }}>{dummyDoctor.qualification}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--secondary)' }}>Reg. {dummyDoctor.regNumber}</div>
-                  </div>
-                </div>
-
-                <div className="rx-patient-meta-grid">
-                  <div><strong>Patient:</strong> {currentPatient.name}</div>
-                  <div><strong>Age/Gender:</strong> {currentPatient.age}y / {currentPatient.gender}</div>
-                  <div><strong>Date:</strong> 2026-11-07</div>
-                  <div><strong>Blood Group:</strong> {currentPatient.bloodGroup}</div>
-                  <div><strong>Diagnosis:</strong> {diagnosis}</div>
-                  <div><strong>Consultation:</strong> Online Tele-Health</div>
-                </div>
-
-                <div className="rx-symbol">&#8478;</div>
-
-                <table className="rx-table" style={{ marginTop: '4px' }}>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Medication & Strength</th>
-                      <th>Dosage</th>
-                      <th>Frequency</th>
-                      <th>Duration</th>
-                      <th>Instructions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {medications.map((m, i) => (
-                      <tr key={i}>
-                        <td>{i + 1}</td>
-                        <td style={{ fontWeight: 600 }}>{m.name || 'Prescribed Medicine'}</td>
-                        <td>{m.dosage}</td>
-                        <td>{m.frequency}</td>
-                        <td>{m.duration}</td>
-                        <td>{m.instruction}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div style={{ marginTop: '16px', fontSize: '12.5px' }}>
-                  <strong>Diet / Special Instructions:</strong> {dietAdvice}
-                </div>
-
-                <div className="rx-pad-footer">
-                  <div style={{ fontSize: '11px', color: 'var(--secondary)' }}>
-                    Digitally generated via MedConsult Tele-Health. Valid per Medical Council regulations.
-                  </div>
-                  <div className="doctor-sign-block">
-                    <div className="doctor-signature-line">Priya Nair, MD</div>
-                    <div style={{ fontSize: '11px', fontWeight: 600 }}>Authorized Signatory</div>
-                  </div>
-                </div>
-              </div>
+              <PrescriptionPad rx={completedRx} doctor={dummyDoctor} />
             </div>
 
             <div className="modal-footer">
               <Button
                 variant="secondary"
+                onClick={() => window.print()}
+              >
+                <Printer size={14} style={{ marginRight: 6 }} />
+                Print Prescription
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setIsCompletedModalOpen(false);
-                  navigate('/doctor/records');
+                  navigate('/doctor/prescriptions');
                 }}
               >
-                Go to Records
+                View Prescriptions
               </Button>
               <Button
                 variant="primary"

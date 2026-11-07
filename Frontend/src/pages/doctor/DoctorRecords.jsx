@@ -201,7 +201,7 @@ function DoctorRecords() {
                 <div className="rx-pad-header">
                   <div>
                     <div className="rx-clinic-name">MEDCONSULT CLINICAL SERVICES</div>
-                    <div className="rx-clinic-sub">Department of General Medicine &bull; Online Telehealth Center</div>
+                    <div className="rx-clinic-sub">Department of General Medicine &bull; Outpatient Consultation Centre</div>
                     <div className="rx-clinic-sub">14, MG Road, Bangalore &bull; Tel: +91 80 2345 6789</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -259,7 +259,7 @@ function DoctorRecords() {
 
                 <div className="rx-pad-footer">
                   <div style={{ fontSize: '11px', color: 'var(--secondary)' }}>
-                    Digitally signed & authorized under National Telemedicine Guidelines.
+                    Digitally signed & authorized under Medical Council of India (MCI) guidelines.
                   </div>
                   <div className="doctor-sign-block">
                     <div className="doctor-signature-line">Dr. Priya Nair, MD</div>

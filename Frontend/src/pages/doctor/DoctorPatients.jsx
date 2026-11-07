@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Search, Phone, Mail, FileText, Video,
+  Users, Search, Phone, Mail, FileText, Stethoscope,
   Calendar, AlertCircle, ChevronRight, X, HeartPulse, UserPlus
 } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
@@ -293,8 +293,8 @@ function DoctorPatients() {
                   navigate(`/doctor/consultations?patientId=${pId}`);
                 }}
               >
-                <Video size={14} style={{ marginRight: 6 }} />
-                Start Tele-Consultation
+                <Stethoscope size={14} style={{ marginRight: 6 }} />
+                Start In-Person Consultation
               </Button>
             </div>
           </div>

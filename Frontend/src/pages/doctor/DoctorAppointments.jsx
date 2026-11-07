@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar, Search, Filter, Video, Clock, CheckCircle,
+  Calendar, Search, Filter, Clock, CheckCircle,
   XCircle, Stethoscope, ChevronRight, X, AlertCircle, Phone
 } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import AppointmentCard from '../../components/doctor/AppointmentCard';
 import { appointments as initialAppointments } from '../../data/dummyData';
 import '../../styles/doctor.css';
 
@@ -83,15 +84,15 @@ function DoctorAppointments() {
   return (
     <div>
       <PageHeader
-        title="Appointments Management"
-        subtitle="Review, approve, and manage all your patient appointments and consultation requests."
+        title="In-Person Appointments Management"
+        subtitle="Review, schedule, and conduct in-person consultations with assigned patients."
         actions={
           <Button
-            variant="primary"
-            onClick={() => navigate('/doctor/consultations')}
+            variant="secondary"
+            onClick={() => navigate('/doctor/schedule')}
           >
-            <Video size={15} style={{ marginRight: 6 }} />
-            Start Instant Consultation
+            <Clock size={15} style={{ marginRight: 6 }} />
+            Manage Availability
           </Button>
         }
       />
@@ -146,7 +147,7 @@ function DoctorAppointments() {
             <input
               type="text"
               className="input-field has-icon"
-              placeholder="Search by patient name, symptoms, or appointment ID..."
+              placeholder="Search by patient name, chief complaint, or appointment ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -154,7 +155,7 @@ function DoctorAppointments() {
         </div>
       </div>
 
-      {/* Appointments List / Grid */}
+      {/* Appointments Grid */}
       {filteredAppointments.length === 0 ? (
         <div className="card empty-state">
           <Calendar size={42} />
@@ -171,126 +172,15 @@ function DoctorAppointments() {
       ) : (
         <div className="appointments-grid">
           {filteredAppointments.map((apt) => (
-            <div key={apt.id} className="appointment-card">
-              <div className="appointment-card-header">
-                <div>
-                  <div className="patient-info-title">{apt.patientName}</div>
-                  <div className="patient-info-meta">
-                    {apt.patientAge} yrs &bull; {apt.patientGender} &bull; ID: {apt.id}
-                  </div>
-                </div>
-                <Badge
-                  status={apt.status}
-                  label={apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
-                />
-              </div>
-
-              <div className="appointment-meta-row">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Calendar size={13} /> {apt.date}
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Clock size={13} /> {apt.time}
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  {apt.type.includes('Video') ? <Video size={13} color="var(--primary)" /> : <Stethoscope size={13} />}
-                  {apt.type.includes('Video') ? 'Video Call' : 'In-Clinic'}
-                </span>
-              </div>
-
-              <div className="appointment-symptoms">
-                <strong>Symptoms:</strong> {apt.symptoms || 'General wellness consultation'}
-              </div>
-
-              {apt.vitals && (
-                <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--secondary)' }}>
-                  <span>BP: <strong>{apt.vitals.bp}</strong></span>
-                  <span>Pulse: <strong>{apt.vitals.pulse}</strong></span>
-                  <span>Temp: <strong>{apt.vitals.temp}</strong></span>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="card-actions-row">
-                {apt.status === 'pending' ? (
-                  <>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleStatusChange(apt.id, 'confirmed')}
-                    >
-                      <CheckCircle size={14} style={{ marginRight: 4 }} />
-                      Accept
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setRescheduleModalApt(apt)}
-                    >
-                      Reschedule
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      style={{ color: 'var(--danger)' }}
-                      onClick={() => handleStatusChange(apt.id, 'cancelled')}
-                    >
-                      Decline
-                    </Button>
-                  </>
-                ) : apt.status === 'confirmed' ? (
-                  <>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => navigate(`/doctor/consultations?aptId=${apt.id}`)}
-                    >
-                      <Video size={14} style={{ marginRight: 4 }} />
-                      Join Consultation
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSelectedAppointment(apt)}
-                    >
-                      Details
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setRescheduleModalApt(apt)}
-                    >
-                      Reschedule
-                    </Button>
-                  </>
-                ) : apt.status === 'completed' ? (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => navigate(`/doctor/records`)}
-                    >
-                      View Rx / Record
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedAppointment(apt)}
-                    >
-                      Details
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedAppointment(apt)}
-                  >
-                    View Details
-                  </Button>
-                )}
-              </div>
-            </div>
+            <AppointmentCard
+              key={apt.id}
+              appointment={apt}
+              onStartConsultation={(item) => navigate(`/doctor/consultations?aptId=${item.id}`)}
+              onViewDetails={(item) => setSelectedAppointment(item)}
+              onReschedule={(item) => setRescheduleModalApt(item)}
+              onStatusChange={handleStatusChange}
+              onViewRecords={() => navigate('/doctor/prescriptions')}
+            />
           ))}
         </div>
       )}
@@ -305,7 +195,7 @@ function DoctorAppointments() {
                   Appointment Details &mdash; {selectedAppointment.id}
                 </h3>
                 <p style={{ fontSize: 12, color: 'var(--secondary)' }}>
-                  {selectedAppointment.date} at {selectedAppointment.time}
+                  {selectedAppointment.date} at {selectedAppointment.time} &bull; {selectedAppointment.room || 'Room 3B'}
                 </p>
               </div>
               <button
@@ -338,13 +228,13 @@ function DoctorAppointments() {
                   <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{selectedAppointment.type}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--secondary)' }}>DOCTOR</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{selectedAppointment.doctorName}</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--secondary)' }}>CONSULTATION ROOM</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{selectedAppointment.room || 'Room 3B (Floor 2)'}</div>
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--secondary)' }}>REPORTED SYMPTOMS & CHIEF COMPLAINT</div>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--secondary)' }}>CHIEF COMPLAINT &amp; REPORTED SYMPTOMS</div>
                 <div style={{ fontSize: 13, background: 'var(--bg)', padding: '10px', borderRadius: 'var(--radius-sm)', marginTop: 4 }}>
                   {selectedAppointment.symptoms}
                 </div>
@@ -390,8 +280,8 @@ function DoctorAppointments() {
                     navigate(`/doctor/consultations?aptId=${aptId}`);
                   }}
                 >
-                  <Video size={14} style={{ marginRight: 6 }} />
-                  Start Consultation
+                  <Stethoscope size={14} style={{ marginRight: 6 }} />
+                  Start In-Person Consultation
                 </Button>
               )}
             </div>
