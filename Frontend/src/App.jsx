@@ -10,6 +10,10 @@ import LandingPage from './pages/LandingPage';
 
 // Pages - Patient
 import PatientDashboard from './pages/patient/PatientDashboard';
+import PatientAppointments from './pages/patient/PatientAppointments';
+import PatientRecords from './pages/patient/PatientRecords';
+import PatientConsultations from './pages/patient/PatientConsultations';
+import PatientProfile from './pages/patient/PatientProfile';
 
 // Pages - Doctor
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -33,6 +37,10 @@ function App() {
         <Route path="/patient" element={<PatientLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<PatientDashboard />} />
+          <Route path="appointments" element={<PatientAppointments />} />
+          <Route path="records" element={<PatientRecords />} />
+          <Route path="consultations" element={<PatientConsultations />} />
+          <Route path="profile" element={<PatientProfile />} />
         </Route>
 
         {/* Doctor routes */}
